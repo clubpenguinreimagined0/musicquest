@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, Key, Database, Download, Upload, Trash2, Info } from 'lucide-react';
+import { X, Settings, Key, Database, Download, Upload, Trash2, Info, AlertTriangle } from 'lucide-react';
+import { useData } from '../../context/DataContext';
 import {
   saveAPIConfig,
   getAPIConfig,
@@ -10,6 +11,7 @@ import {
 } from '../../utils/storage/indexedDB';
 
 const AdvancedSettingsModal = ({ isOpen, onClose }) => {
+  const { dispatch, actionTypes } = useData();
   const [activeTab, setActiveTab] = useState('api');
   const [lastfmApiKey, setLastfmApiKey] = useState('');
   const [cacheStats, setCacheStats] = useState(null);
@@ -98,6 +100,48 @@ const AdvancedSettingsModal = ({ isOpen, onClose }) => {
       setSaveStatus({ type: 'error', message: 'Invalid backup file' });
     }
     setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  const handleClearAllData = async () => {
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will delete ALL your data including listens, genres, and settings. This action cannot be undone. Are you absolutely sure?'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      // Clear IndexedDB
+      const dbNames = await indexedDB.databases();
+      for (const db of dbNames) {
+        if (db.name) {
+          await new Promise((resolve, reject) => {
+            const request = indexedDB.deleteDatabase(db.name);
+            request.onsuccess = resolve;
+            request.onerror = reject;
+          });
+        }
+      }
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      // Clear React state
+      dispatch({ type: actionTypes.CLEAR_DATA });
+
+      setSaveStatus({ type: 'success', message: 'All data cleared successfully! Reloading page...' });
+
+      // Reload page to reset everything
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to clear data:', error);
+      setSaveStatus({ type: 'error', message: 'Failed to clear all data. Please try clearing your browser cache manually.' });
+      setTimeout(() => setSaveStatus(null), 5000);
+    }
   };
 
   if (!isOpen) return null;
@@ -449,6 +493,26 @@ const AdvancedSettingsModal = ({ isOpen, onClose }) => {
                   Exporting your data creates a backup that includes all your listens, cached genres, and settings.
                   You can import this backup later to restore your data.
                 </p>
+              </div>
+
+              <div className="pt-6 border-t-2 border-red-200 dark:border-red-800">
+                <h3 className="text-lg font-semibold mb-3 text-red-900 dark:text-red-300 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5" />
+                  Danger Zone
+                </h3>
+                <button
+                  onClick={handleClearAllData}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Trash2 className="w-5 h-5" />
+                  <span>Clear All Data (Nuclear Reset)</span>
+                </button>
+                <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mt-3">
+                  <p className="text-xs text-red-700 dark:text-red-300">
+                    This will permanently delete ALL data including listens, genres, cache, and settings.
+                    Export your data first if you want to keep a backup.
+                  </p>
+                </div>
               </div>
             </div>
           )}
