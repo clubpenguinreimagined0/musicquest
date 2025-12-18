@@ -219,4 +219,27 @@ function convertSpotifyTimestamp(timestamp) {
   
   // Unknown format - log and return current time
   console.error('❌ Unknown timestamp format:', timestamp, typeof timestamp);
-  return Math.floor(Date.now() /
+  return Math.floor(Date.now() / 1000);  // ← FIXED: Complete line!
+}
+
+// ═══════════════════════════════════════════════════════════
+// VALIDATION HELPERS
+// ═══════════════════════════════════════════════════════════
+
+export function validateUniversalData(data) {
+  if (!data) {
+    return { valid: false, message: 'No data provided' };
+  }
+
+  try {
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+    const format = detectDataFormat(parsed, '');
+    return { valid: true, format, message: `Valid ${format} format` };
+  } catch (error) {
+    return { valid: false, message: error.message };
+  }
+}
+
+export function parseUniversalData(fileContent, fileName) {
+  return parseImportedData(fileContent, fileName);
+}
