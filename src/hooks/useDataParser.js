@@ -6,6 +6,8 @@ import { useData } from '../context/DataContext';
 import errorLogger from '../utils/errorLogger';
 import { cleanGenreData } from '../utils/genreTaxonomy';
 import { validateListeningData } from '../utils/dataMerge';
+import { validateAndCleanTimestamps } from '../utils/timestampValidation.js';
+import { enrichListensWithGenres } from '../utils/genreEnrichment.js';
 
 export const useDataParser = () => {
   const { dispatch, actionTypes } = useData();
@@ -143,7 +145,6 @@ export const useDataParser = () => {
         currentFile: ''
       });
 
-      const { validateAndCleanTimestamps } = await import('../utils/timestampValidation.js');
       const timestampResult = validateAndCleanTimestamps(cleanedListens);
 
       if (timestampResult.stats.removed > 0) {
@@ -212,7 +213,6 @@ export const useDataParser = () => {
 
       setTimeout(async () => {
         try {
-          const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
           const enrichedListens = await enrichListensWithGenres(finalListens, true);
 
           const enrichedCount = enrichedListens.filter(l =>
