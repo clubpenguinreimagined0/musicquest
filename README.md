@@ -1,54 +1,54 @@
-# Music Genre Evolution Visualizer
+# 🎵 MusicQuest
 
-A secure, open-source React application that visualizes your music listening history with interactive D3.js timeline showing how your genre preferences evolve over time.
+**Discover the gateway artists and genre evolution that shaped your music taste across ListenBrainz and Spotify.**
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)](https://reactjs.org/)
+[![D3.js](https://img.shields.io/badge/D3.js-v7+-F9A03C?logo=d3.js)](https://d3js.org/)
 
-### Data Input
-- **ListenBrainz JSON/JSONL upload**: Upload JSON or JSONL exports from [ListenBrainz](https://listenbrainz.org/settings/export/)
-- **Spotify JSON/JSONL upload**: Upload extended streaming history from [Spotify](https://support.spotify.com/us/article/understanding-your-data/)
-- **Multiple file upload**: Select and process multiple JSON/JSONL files simultaneously
-- **Directory upload**: Upload entire directories containing JSON/JSONL files (Chrome/Edge)
-- **Large file support**: Process up to 250MB of data with optimized streaming parsers
-- **ListenBrainz API live fetch**: Connect directly with your ListenBrainz API token (coming soon)
+MusicQuest is a secure, open-source visualization tool that transforms your listening history into an interactive journey through your musical evolution. Track how discovering one artist opened entire genres, visualize your taste progression over time, and uncover the hidden patterns in your music consumption.
 
-### Genre Classification
-- Automatic genre classification using ListenBrainz similar-artists API
-- Fallback to MusicBrainz API genre tags
-- Intelligent caching system to minimize API calls
-- Manual genre mapping UI for unknown artists (coming soon)
+🌄 **Built in Colorado with ❤️**
 
-### Interactive Visualizations
+---
 
-#### 4 Visualization Modes
-1. **Sankey Flow Diagram**: Genre transitions showing flow thickness based on listening time
-2. **Branching Tree Timeline**: Vertical timeline with horizontal branches for each genre
-3. **Multi-track Parallel Timeline**: Concurrent genre lanes showing simultaneous listening patterns
-4. **Bubble Stream**: Time-series bubbles where size represents listen count
+## ✨ Key Features
 
-### Time Period Grouping
-- User-selectable time buckets: Daily, Weekly, Monthly, Quarterly, Yearly
-- Adaptive algorithm that auto-suggests optimal grouping based on data density
+### 🎸 Gateway Artist Discovery
+Identify the pivotal artists that introduced you to new genres. See how discovering Ahmad Jamal led you from bebop to hard bop, or how one electronic artist opened an entire EDM phase.
 
-### Additional Features
-- Dark/Light mode toggle
-- Responsive design (mobile, tablet, desktop)
-- Drag-and-drop file/directory upload
-- Real-time progress indicators with file-by-file tracking
-- Error logging system with downloadable logs
-- Secure token storage with AES-256 encryption
-- IndexedDB for large dataset persistence
-- Client-side only (no server required)
-- JSONL streaming parser for efficient large file processing
+### 📊 Genre Evolution Tracking
+Watch your music taste evolve with detailed subgenre tracking:
+- Jazz progression: bebop → hard bop → modal jazz
+- Electronic journey: house → deep house → tech house
+- 200+ genre/subgenre classifications preserved
 
-## Installation
+### 🔗 Multi-Platform Support
+- **ListenBrainz**: Upload JSON/JSONL exports or connect via API
+- **Spotify**: Import extended streaming history
+- **Coming soon**: Last.fm, Apple Music
+
+### 🎨 4 Interactive Visualization Modes
+1. **Milestone Timeline**: Gateway artists with curved connectors showing genre impact
+2. **Parallel Timeline**: Concurrent genre lanes with activity dots
+3. **Sankey Flow**: Genre transitions with flow thickness based on listening time
+4. **Stream Graph**: Smooth area charts showing genre dominance over time
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+ or Docker
+- ListenBrainz export or Spotify extended streaming history
 
 ### Local Development
 
-```bash
+```
+# Clone the repository
+git clone https://github.com/aldebaranshower/musicquest.git
+cd musicquest
+
 # Install dependencies
 npm install
 
@@ -57,154 +57,314 @@ npm run dev
 
 # Build for production
 npm run build
-
-# Preview production build
-npm run preview
 ```
 
 ### Environment Variables
 
-Create a `.env` file in the root directory:
-
-```env
+Create a `.env` file:
+```
 VITE_ENCRYPTION_KEY=your-secure-encryption-key-here
 ```
 
-For production, make sure to use a strong, randomly generated key.
+For production, use a strong, randomly generated key.
 
-## Usage
+---
 
-### Using ListenBrainz Data
+## 📖 How to Use
 
-1. Go to [ListenBrainz Export](https://listenbrainz.org/settings/export/)
-2. Download your listening history JSON/JSONL file
-3. Choose upload mode (single file, multiple files, or directory)
-4. Upload the file(s) to the application (supports up to 250MB total)
-5. Wait for genre classification to complete
-6. Explore different visualization modes and time periods
+### Option 1: ListenBrainz
 
-### Using Spotify Data
+1. Visit [ListenBrainz Export](https://listenbrainz.org/settings/export/)
+2. Download your listening history (JSON/JSONL)
+3. Upload to MusicQuest (supports up to 250MB)
+4. Wait for genre classification (automatic with caching)
+5. Explore your musical journey!
 
-1. Request your extended streaming history from [Spotify](https://support.spotify.com/us/article/understanding-your-data/)
-2. Wait for Spotify to prepare your data (can take several days)
-3. Download and extract the JSON files
-4. Use multiple file upload or directory upload to process all streaming history files at once
-5. Explore your visualizations
+### Option 2: Spotify
 
-### Error Logs
+1. Request extended streaming history from [Spotify](https://support.spotify.com/us/article/understanding-your-data/)
+2. Wait for Spotify to prepare your data (3-30 days)
+3. Upload all JSON files (supports multiple files or directory upload)
+4. Discover your gateway artists and genre evolution
 
-Access error logs by clicking "View Error Logs" in the footer. The error log viewer provides:
-- Real-time error tracking
-- Filter by error level (error, warning, info)
-- Download logs as JSON
-- Clear logs functionality
-- Stack traces for debugging
+### Pro Tips
+- Use **directory upload** (Chrome/Edge) for multiple Spotify files
+- Enable **dark mode** for better visualization clarity
+- Try different **time granularities** (yearly, quarterly, monthly) based on your data span
+- Click on genres to **filter** and focus on specific musical journeys
 
-## Architecture
+---
+
+## 🎯 What Makes MusicQuest Different
+
+### Gateway Artist Attribution
+Unlike other music visualizers, MusicQuest identifies **causality** in your listening patterns:
+
+```
+🎵 Discovered Ahmad Jamal (Q2 2015)
+   First track: "Poinciana"
+   Led to 18.5% growth in hard bop
+   
+   Before: bebop (45 listens)
+   After:  bebop (38 listens) + hard bop (67 listens)
+```
+
+### Subgenre Precision
+Most tools group "jazz" as one category. MusicQuest preserves musical nuance:
+- **Separate tracking**: bebop ≠ hard bop ≠ cool jazz ≠ free jazz
+- **Evolution visualization**: See your progression through subgenres
+- **200+ classifications**: From brostep to chamber jazz
+
+### Privacy-First Architecture
+- **100% client-side**: All processing happens in your browser
+- **No server uploads**: Your data never leaves your device
+- **Encrypted storage**: AES-256 for sensitive tokens
+- **Open source**: Audit the code yourself
+
+---
+
+## 🏗️ Architecture
 
 ### Frontend Stack
-- React 18+ with hooks
-- D3.js v7+ for visualizations
-- TailwindCSS for styling
-- Context API for state management
+- **React 18+**: Modern hooks and Context API
+- **D3.js v7+**: Interactive, responsive visualizations
+- **TailwindCSS**: Clean, customizable styling
+- **TypeScript**: Type-safe data handling
 
-### Storage
-- IndexedDB for large datasets (via idb library)
-- localStorage for user preferences
-- Encrypted token storage (crypto-js)
+### Data Pipeline
+```
+Upload → Parse → Deduplicate → Classify → Cache → Visualize
+   ↓         ↓          ↓            ↓        ↓         ↓
+ JSON    Detect   Case-     ListenBrainz  IndexedDB  D3.js
+         Format  Insensitive  + MusicBrainz           SVG
+```
 
-### Security Features
-- AES-256 encryption for sensitive data
-- Client-side only (no data leaves your browser)
-- Content Security Policy headers ready
-- DOMPurify sanitization for user content
+### Storage Strategy
+- **IndexedDB**: Large datasets (millions of listens)
+- **localStorage**: User preferences, theme, settings
+- **sessionStorage**: Optional in-memory mode
+- **Encrypted vault**: API tokens with crypto-js
 
-## Project Structure
+### Performance Optimizations
+- JSONL streaming parser for 250MB+ files
+- Progressive genre classification (resumable)
+- React.memo for expensive D3 components
+- Debounced inputs and throttled renders
+- Smart caching with 30-day TTL
+
+---
+
+## 📂 Project Structure
 
 ```
 src/
 ├── components/
-│   ├── FileUpload/         # File upload with drag-and-drop
-│   ├── Settings/           # Settings panel
-│   └── Timeline/           # D3.js visualizations
+│   ├── FileUpload/           # Multi-format drag-and-drop
+│   ├── GatewayArtists/       # Discovery milestone cards
+│   ├── Visualizations/       # D3.js timeline modes
+│   └── Settings/             # Genre cleanup, cache management
 ├── hooks/
-│   ├── useDataParser.js    # File parsing logic
-│   └── useGenreFetch.js    # Genre classification
+│   ├── useDataParser.js      # ListenBrainz, Spotify, Last.fm parsers
+│   ├── useGenreFetch.js      # API classification with retry
+│   └── useTimelineLayout.js  # Collision detection, adaptive labels
 ├── utils/
-│   ├── parsers/           # ListenBrainz & Spotify parsers
-│   ├── api/               # API integration with retry
-│   ├── storage/           # Encryption & IndexedDB
-│   ├── genreClassifier.js # Genre classification system
-│   └── timePeriodGrouping.js # Time grouping algorithms
+│   ├── parsers/
+│   │   ├── listenbrainz.js   # Unix timestamp handling
+│   │   ├── spotify.js        # ISO to Unix conversion
+│   │   └── universal.js      # Format auto-detection
+│   ├── genreClassifier.js    # Taxonomy validation, mapping
+│   ├── gatewayDetection.js   # Statistical causality analysis
+│   └── storage/
+│       ├── encryption.js     # AES-256 token vault
+│       └── indexedDB.js      # Dexie.js wrapper
 └── context/
-    └── DataContext.jsx     # Global state management
+    └── DataContext.jsx       # Global state, merge logic
 ```
 
-## API Integration
+---
 
-### Rate Limiting
-- ListenBrainz: 50 requests/second
-- MusicBrainz: 1 request/second
-- Automatic retry with exponential backoff
+## 🔐 Security & Privacy
 
-### Genre Classification Flow
-1. Check cache for artist
-2. Search MusicBrainz for artist MBID
-3. Try ListenBrainz similar-artists API
-4. Fallback to MusicBrainz genre tags
-5. Cache results for 30 days
+### Data Protection
+- ✅ Client-side only (no server infrastructure)
+- ✅ AES-256 encryption for API tokens
+- ✅ Content Security Policy ready
+- ✅ DOMPurify sanitization
+- ✅ No analytics or tracking
 
-## Performance Optimizations
+### API Integration
+- **ListenBrainz**: 50 req/sec with exponential backoff
+- **MusicBrainz**: 1 req/sec with respectful rate limiting
+- **Caching**: 30-day TTL to minimize API calls
+- **Retry logic**: Automatic recovery from transient failures
 
-- React.memo for expensive components
-- Debounced inputs (300ms)
-- Progressive data loading
-- Efficient D3.js rendering
-- Responsive SVG with dynamic sizing
+---
 
-## Browser Support
+## 🎨 Visualization Gallery
 
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
+### Milestone Timeline
+Shows gateway artists as milestone cards connected to the timeline with curved lines. Each card displays:
+- Artist name and first track
+- Genre growth percentage attributed to discovery
+- Time period of introduction
 
-## Data Privacy
+### Parallel Timeline
+Horizontal lanes for each genre with dots representing listening activity. Larger white-outlined circles mark gateway artist discoveries.
 
-- All processing happens client-side
-- No data sent to external servers (except API requests)
-- Optional in-memory mode for session-only storage
-- Encrypted token storage
-- Clear data functionality
+### Sankey Flow Diagram
+Flow thickness represents listen volume. Watch genres emerge, merge, and evolve over time.
 
-## Contributing
+### Stream Graph
+Smooth, organic area chart showing genre dominance. Height = listening intensity.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+---
 
-## License
+## 🛣️ Roadmap
 
-MIT License - see LICENSE file for details
+### In Progress
+- [ ] ListenBrainz API live fetch (OAuth integration)
+- [ ] Manual genre mapping UI for edge cases
+- [ ] Export visualizations as PNG/SVG
 
-## Acknowledgments
+### Planned Features
+- [ ] Last.fm import support
+- [ ] Apple Music integration
+- [ ] Animation playback controls (time travel through your taste)
+- [ ] Share visualizations via URL (with privacy controls)
+- [ ] Genre recommendations based on gateway artist patterns
+- [ ] Collaborative filtering insights ("Users who discovered X also discovered Y")
+- [ ] Listening session analysis (binge vs. casual patterns)
+- [ ] Decade/era comparisons (90s vs 2000s influence)
 
-- [ListenBrainz](https://listenbrainz.org/) for the API
-- [MusicBrainz](https://musicbrainz.org/) for genre data
-- [D3.js](https://d3js.org/) for visualization capabilities
+### Community Requests
+Vote on features in [GitHub Discussions](https://github.com/aldebaranshower/musicquest/discussions)
 
-## Roadmap
+---
 
-- [ ] ListenBrainz API live fetch integration
-- [ ] Manual genre mapping UI
-- [ ] Export visualizations as images
-- [ ] Share visualizations via URL
-- [ ] Animation playback controls
-- [ ] More visualization modes
-- [ ] Genre recommendations based on listening history
-- [ ] Collaborative filtering insights
+## 🤝 Contributing
 
-## Support
+Contributions are welcome! Here's how to get started:
 
-If you encounter any issues or have questions, please file an issue on GitHub.
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** with clear commit messages
+4. **Test thoroughly**: Ensure visualizations render correctly
+5. **Submit a Pull Request** with a detailed description
 
-## Development
+### Development Guidelines
+- Follow React best practices (hooks, functional components)
+- Use TypeScript for new features
+- Write unit tests for data processing logic
+- Optimize D3.js renders (avoid unnecessary re-draws)
+- Document complex algorithms (especially gateway detection)
 
-Built with modern web technologies and best practices for a secure, performant, and user-friendly experience.
+### Bug Reports
+Found a bug? Please [file an issue](https://github.com/aldebaranshower/musicquest/issues) with:
+- Browser and version
+- Data source (ListenBrainz or Spotify)
+- Steps to reproduce
+- Error logs (available in Settings → View Error Logs)
+
+---
+
+## 📊 Technical Details
+
+### Genre Classification Algorithm
+1. **Check cache**: O(1) lookup in IndexedDB
+2. **Search MusicBrainz**: Get artist MBID
+3. **Query ListenBrainz**: Fetch similar artists with genre tags
+4. **Fallback to MusicBrainz tags**: If ListenBrainz returns no genres
+5. **Validate taxonomy**: Filter invalid tags (artist names, languages)
+6. **Cache result**: 30-day TTL
+
+### Gateway Artist Detection
+Statistical analysis to identify causality:
+```
+For each artist discovery:
+  - Calculate genre distribution 2 periods before
+  - Calculate genre distribution 2 periods after
+  - If genre growth > 5 percentage points
+    AND artist played 10+ times in first period
+    → Mark as gateway artist
+```
+
+### Deduplication Strategy
+Case-insensitive key: `lowercase(track_name) + lowercase(artist_name) + timestamp`
+- Handles re-uploads (50% duplicate detection)
+- Merges overlapping exports (e.g., 2018-2023 + 2021-2025)
+- Preserves original casing in UI
+
+---
+
+## 🌐 Browser Support
+
+| Browser | Minimum Version | Notes |
+|---------|----------------|-------|
+| Chrome/Edge | 90+ | ✅ Full support including directory upload |
+| Firefox | 88+ | ✅ Full support |
+| Safari | 14+ | ✅ Full support (iOS 14+) |
+| Opera | 76+ | ✅ Chromium-based version |
+
+### Required Browser Features
+- IndexedDB API
+- Web Workers (for large file processing)
+- ES2020+ JavaScript
+- SVG rendering
+- localStorage & sessionStorage
+
+---
+
+## 📜 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+**TL;DR**: Free to use, modify, and distribute. Attribution appreciated but not required.
+
+---
+
+## 🙏 Acknowledgments
+
+- **[ListenBrainz](https://listenbrainz.org/)** - Open-source music tracking API
+- **[MusicBrainz](https://musicbrainz.org/)** - Comprehensive music metadata database
+- **[D3.js](https://d3js.org/)** - Powerful data visualization library
+- **Open source community** - For inspiration and code contributions
+
+---
+
+## 💬 Support & Community
+
+- **Issues**: [GitHub Issues](https://github.com/aldebaranshower/musicquest/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/aldebaranshower/musicquest/discussions)
+- **Documentation**: [Wiki](https://github.com/aldebaranshower/musicquest/wiki)
+
+---
+
+## 📸 Screenshots
+
+*Coming soon - visualizations of real listening data*
+
+---
+
+## 🎯 Use Cases
+
+### Music Enthusiasts
+Discover patterns in your listening habits you never knew existed. When did your EDM phase start? What artist introduced you to jazz?
+
+### Music Researchers
+Analyze listening trends, genre evolution patterns, and discovery mechanisms with exportable data.
+
+### Playlist Curators
+Understand your audience's gateway artists to create better discovery playlists.
+
+### Data Visualization Fans
+Explore a real-world application of D3.js, React, and advanced data processing techniques.
+
+---
+
+**Start your musical quest today at [musicquest.dev](https://musicquest.dev)**
+
+🌄 Crafted with care in the Colorado Rockies
+
+---
+
+*MusicQuest is not affiliated with ListenBrainz, Spotify, MusicBrainz, or Last.fm*
