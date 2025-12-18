@@ -170,35 +170,15 @@ export const useDataParser = () => {
         throw new Error(validation.error);
       }
 
-      // Check if we have existing genre cache
       setParseProgress({
         percentage: 85,
-        status: 'Checking genre cache...',
+        status: 'Finalizing import...',
         currentFile: ''
       });
 
-      const { getListensNeedingGenres } = await import('../utils/listenUpdater.js');
-      const genreStatus = await getListensNeedingGenres();
-
       let finalListens = mergeResult.data;
 
-      if (genreStatus.artists < mergeResult.data.length * 0.5) {
-        setParseProgress({
-          percentage: 90,
-          status: 'Enriching with cached genres...',
-          currentFile: ''
-        });
-
-        const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
-        finalListens = await enrichListensWithGenres(mergeResult.data);
-
-        console.log(`✅ Enriched ${finalListens.filter(l => l.genres && l.genres[0] !== 'Unknown').length} listens from cache`);
-      } else {
-        console.log(`⚠️  Genre cache mostly empty (${genreStatus.artists} artists need classification)`);
-        console.log(`   Classification will run in background after import completes`);
-      }
-
-      // Update state
+      // Update state with imported data
       dispatch({ type: actionTypes.SET_LISTENS, payload: finalListens });
 
       setParseProgress({
@@ -214,11 +194,6 @@ export const useDataParser = () => {
       const earliest = new Date(Math.min(...timestamps) * 1000);
       const latest = new Date(Math.max(...timestamps) * 1000);
 
-      // Get enrichment stats
-      const enrichedCount = finalListens.filter(l =>
-        l.genres && l.genres.length > 0 && l.genres[0] !== 'Unknown'
-      ).length;
-
       errorLogger.info(`Successfully processed ${files.length} files`, {
         context: 'file parsing complete',
         fileCount: files.length,
@@ -227,11 +202,30 @@ export const useDataParser = () => {
         timestampsRemoved: timestampResult.stats.removed,
         total: finalListens.length,
         duplicatesRemoved: mergeResult.mergeInfo?.duplicates || 0,
-        enrichedWithGenres: enrichedCount,
-        enrichmentRate: `${((enrichedCount/finalListens.length)*100).toFixed(1)}%`,
         dateRange: `${earliest.getFullYear()}-${latest.getFullYear()}`,
         genreCleanup: genreReport
       });
+
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🎵 TRIGGERING POST-IMPORT ENRICHMENT');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+      setTimeout(async () => {
+        try {
+          const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
+          const enrichedListens = await enrichListensWithGenres(finalListens, true);
+
+          const enrichedCount = enrichedListens.filter(l =>
+            l.genres && l.genres.length > 0 && l.genres[0] !== 'Unknown'
+          ).length;
+
+          dispatch({ type: actionTypes.SET_LISTENS, payload: enrichedListens });
+
+          console.log(`✅ Post-import enrichment complete: ${enrichedCount}/${enrichedListens.length} listens enriched`);
+        } catch (error) {
+          console.error('❌ Post-import enrichment failed:', error);
+        }
+      }, 1000);
 
       return {
         success: true,
@@ -240,12 +234,6 @@ export const useDataParser = () => {
         mergeInfo: mergeResult.mergeInfo,
         genreReport: genreReport,
         timestampStats: timestampResult.stats,
-        enrichmentStats: {
-          total: finalListens.length,
-          enriched: enrichedCount,
-          needsFetch: finalListens.length - enrichedCount
-        },
-        genreStatus: genreStatus,
         dateRange: { earliest, latest }
       };
 

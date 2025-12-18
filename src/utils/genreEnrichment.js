@@ -1,15 +1,17 @@
 import { initDB } from './storage/indexedDB';
 
-export async function enrichListensWithGenres(listens) {
+export async function enrichListensWithGenres(listens, saveToDatabase = true) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`🎵 GENRE ENRICHMENT STARTED`);
   console.log(`   Processing ${listens.length.toLocaleString()} listens...`);
+  console.log(`   Save to database: ${saveToDatabase ? 'YES' : 'NO'}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
   let enrichedCount = 0;
   let cacheHits = 0;
   let cacheMisses = 0;
   let unknownArtists = 0;
+  let savedCount = 0;
 
   const db = await initDB();
   const genreCache = new Map();
@@ -66,6 +68,27 @@ export async function enrichListensWithGenres(listens) {
     };
   });
 
+  if (saveToDatabase && cacheHits > 0) {
+    console.log(`   💾 Saving ${cacheHits.toLocaleString()} enriched listens to database...`);
+
+    const tx = db.transaction('listens', 'readwrite');
+    const store = tx.objectStore('listens');
+
+    for (const listen of enrichedListens) {
+      if (listen.genres && listen.genres[0] !== 'Unknown') {
+        try {
+          await store.put(listen);
+          savedCount++;
+        } catch (error) {
+          console.error(`   ❌ Failed to save listen:`, error);
+        }
+      }
+    }
+
+    await tx.done;
+    console.log(`   ✅ Saved ${savedCount.toLocaleString()} listens with genres to database`);
+  }
+
   const enrichmentRate = listens.length > 0
     ? ((enrichedCount / listens.length) * 100).toFixed(1)
     : 0;
@@ -79,6 +102,9 @@ export async function enrichListensWithGenres(listens) {
   console.log(`   Unknown artists:    ${unknownArtists.toLocaleString()}`);
   console.log(`   ─────────────────────────────────`);
   console.log(`   Enriched listens:   ${enrichedCount.toLocaleString()} (${enrichmentRate}%)`);
+  if (saveToDatabase) {
+    console.log(`   Saved to DB:        ${savedCount.toLocaleString()}`);
+  }
   console.log(`   Needs fetching:     ${cacheMisses.toLocaleString()}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 

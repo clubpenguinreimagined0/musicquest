@@ -28,8 +28,15 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
 
     const series = stack(processedData.data);
 
+    const validDates = processedData.data.map(d => d.date).filter(date => {
+      const year = date.getFullYear();
+      return year >= 2000 && year <= 2030;
+    });
+
+    const dateExtent = d3.extent(validDates);
+
     const x = d3.scaleTime()
-      .domain(d3.extent(processedData.data, d => d.date))
+      .domain(dateExtent)
       .range([0, innerWidth]);
 
     const y = d3.scaleLinear()
@@ -70,15 +77,19 @@ export default function GenreStreamGraph({ listens, width = 900, height = 400 })
       .text(d => d.key);
 
     const xAxis = d3.axisBottom(x)
-      .ticks(6)
-      .tickFormat(d3.timeFormat('%b %Y'));
+      .ticks(8)
+      .tickFormat(d3.timeFormat('%Y'));
 
     g.append('g')
       .attr('transform', `translate(0,${innerHeight})`)
       .call(xAxis)
       .selectAll('text')
       .attr('fill', '#9ca3af')
-      .style('font-size', '12px');
+      .style('font-size', '12px')
+      .attr('transform', 'rotate(-45)')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em');
 
     g.selectAll('.domain, .tick line')
       .attr('stroke', '#374151');
@@ -126,9 +137,21 @@ function processListensToStreamData(listens) {
   const genreByDate = new Map();
 
   listens.forEach(listen => {
-    const date = new Date((listen.timestamp || listen.listened_at) * 1000);
-    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const genre = listen.normalizedGenre || listen.genre || 'Unknown';
+    const timestamp = listen.timestamp || listen.listened_at;
+
+    if (!timestamp || timestamp < 946684800 || timestamp > 2147483647) {
+      return;
+    }
+
+    const date = new Date(timestamp * 1000);
+    const year = date.getFullYear();
+
+    if (year < 2000 || year > 2030) {
+      return;
+    }
+
+    const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const genre = listen.genres?.[0] || listen.normalizedGenre || listen.genre || 'Unknown';
 
     if (!genreByDate.has(monthKey)) {
       genreByDate.set(monthKey, {});
