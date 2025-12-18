@@ -2,7 +2,7 @@ import { openDB } from 'idb';
 
 const DB_NAME = 'MusicQuestDB';
 const DB_VERSION = 3;
-const STORES = {
+export const STORES = {
   LISTENS: 'listens',
   GENRES: 'genres',
   SETTINGS: 'settings',

@@ -128,22 +128,36 @@ export const useDataParser = () => {
       allListens.sort((a, b) => (a.listened_at || 0) - (b.listened_at || 0));
 
       // Clean genre data
-      setParseProgress({ 
-        percentage: 70, 
-        status: 'Cleaning genre data...', 
-        currentFile: '' 
+      setParseProgress({
+        percentage: 60,
+        status: 'Cleaning genre data...',
+        currentFile: ''
       });
 
       const { cleanedListens, report: genreReport } = cleanGenreData(allListens);
 
-      // Merge with existing data
-      setParseProgress({ 
-        percentage: 80, 
-        status: 'Merging with existing data...', 
-        currentFile: '' 
+      // Validate and clean timestamps
+      setParseProgress({
+        percentage: 65,
+        status: 'Validating timestamps...',
+        currentFile: ''
       });
 
-      const mergeResult = await mergeListeningData(cleanedListens);
+      const { validateAndCleanTimestamps } = await import('../utils/timestampValidation.js');
+      const timestampResult = validateAndCleanTimestamps(cleanedListens);
+
+      if (timestampResult.stats.removed > 0) {
+        console.warn(`⚠️  Removed ${timestampResult.stats.removed} listens with invalid timestamps`);
+      }
+
+      // Merge with existing data
+      setParseProgress({
+        percentage: 75,
+        status: 'Merging with existing data...',
+        currentFile: ''
+      });
+
+      const mergeResult = await mergeListeningData(timestampResult.listens);
 
       if (!mergeResult.success) {
         throw new Error(mergeResult.error || 'Failed to merge data');
@@ -156,38 +170,63 @@ export const useDataParser = () => {
         throw new Error(validation.error);
       }
 
-      // Update state
-      dispatch({ type: actionTypes.SET_LISTENS, payload: mergeResult.data });
-
-      setParseProgress({ 
-        percentage: 100, 
-        status: 'Complete!', 
-        currentFile: '' 
+      // Enrich with cached genres
+      setParseProgress({
+        percentage: 85,
+        status: 'Enriching with cached genres...',
+        currentFile: ''
       });
-      
+
+      const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
+      const enrichedListens = await enrichListensWithGenres(mergeResult.data);
+
+      // Update state
+      dispatch({ type: actionTypes.SET_LISTENS, payload: enrichedListens });
+
+      setParseProgress({
+        percentage: 100,
+        status: 'Complete!',
+        currentFile: ''
+      });
+
       dispatch({ type: actionTypes.SET_LOADING, payload: false });
 
       // Calculate date range
-      const timestamps = mergeResult.data.map(l => l.listened_at || 0);
+      const timestamps = enrichedListens.map(l => l.listened_at || 0);
       const earliest = new Date(Math.min(...timestamps) * 1000);
       const latest = new Date(Math.max(...timestamps) * 1000);
+
+      // Get enrichment stats
+      const enrichedCount = enrichedListens.filter(l =>
+        l.genres && l.genres.length > 0 && l.genres[0] !== 'Unknown'
+      ).length;
 
       errorLogger.info(`Successfully processed ${files.length} files`, {
         context: 'file parsing complete',
         fileCount: files.length,
         imported: allListens.length,
-        total: mergeResult.data.length,
+        timestampsCleaned: timestampResult.stats.cleaned,
+        timestampsRemoved: timestampResult.stats.removed,
+        total: enrichedListens.length,
         duplicatesRemoved: mergeResult.mergeInfo?.duplicates || 0,
+        enrichedWithGenres: enrichedCount,
+        enrichmentRate: `${((enrichedCount/enrichedListens.length)*100).toFixed(1)}%`,
         dateRange: `${earliest.getFullYear()}-${latest.getFullYear()}`,
         genreCleanup: genreReport
       });
 
       return {
         success: true,
-        count: mergeResult.data.length,
-        listens: mergeResult.data,
+        count: enrichedListens.length,
+        listens: enrichedListens,
         mergeInfo: mergeResult.mergeInfo,
         genreReport: genreReport,
+        timestampStats: timestampResult.stats,
+        enrichmentStats: {
+          total: enrichedListens.length,
+          enriched: enrichedCount,
+          needsFetch: enrichedListens.length - enrichedCount
+        },
         dateRange: { earliest, latest }
       };
 
