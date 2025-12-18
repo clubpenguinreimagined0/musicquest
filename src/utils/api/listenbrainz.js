@@ -6,33 +6,69 @@ const LISTENBRAINZ_LABS_API = 'https://labs.api.listenbrainz.org';
 
 const apiClient = createAxiosInstance(LISTENBRAINZ_API);
 
-export const fetchUserListens = async (username, token, count = 100, offset = 0, onProgress) => {
+export const fetchUserListens = async (username, token, count = 100, maxTs = null, minTs = null, onProgress) => {
   try {
+    let url = `https://api.listenbrainz.org/1/user/${username}/listens?count=${count}`;
+    if (maxTs) url += `&max_ts=${maxTs}`;
+    if (minTs) url += `&min_ts=${minTs}`;
+
+    const headers = token
+      ? { 'Authorization': `Token ${token}` }
+      : {};
+
+    console.log(`📡 Fetching: ${url}`);
+
     const response = await listenBrainzLimiter.throttle(async () => {
-      return await apiClient.get(`/user/${username}/listens`, {
-        params: { count, offset },
-        headers: token ? { Authorization: `Token ${token}` } : {},
-        retry: 3
-      });
+      const res = await fetch(url, { headers });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`API returned ${res.status}: ${errorText}`);
+      }
+
+      return res.json();
     });
+
+    // DEBUG: Log actual response structure
+    console.log('📦 API Response:', {
+      hasPayload: !!response.payload,
+      payloadKeys: response.payload ? Object.keys(response.payload) : [],
+      hasListens: !!response.payload?.listens,
+      listensLength: response.payload?.listens?.length || 0
+    });
+
+    // CRITICAL FIX: Check if payload exists and has listens
+    if (!response.payload) {
+      throw new Error('API response missing payload. Check username and permissions.');
+    }
+
+    if (!response.payload.listens) {
+      throw new Error('API response missing listens array. User may have no listening history.');
+    }
+
+    if (!Array.isArray(response.payload.listens)) {
+      throw new Error('API response listens is not an array');
+    }
+
+    const listens = response.payload.listens;
 
     if (onProgress) {
       onProgress({
-        fetched: offset + response.data.listens.length,
-        total: response.data.payload?.count || offset + response.data.listens.length
+        fetched: listens.length,
+        total: response.payload.count || listens.length
       });
     }
 
     return {
       success: true,
-      listens: response.data.listens || [],
-      count: response.data.payload?.count || 0
+      listens: listens,
+      count: response.payload.count || 0
     };
   } catch (error) {
-    console.error('Failed to fetch user listens:', error);
+    console.error('❌ fetchUserListens error:', error);
     return {
       success: false,
-      error: error.response?.data?.error || error.message,
+      error: error.message,
       listens: []
     };
   }
@@ -41,11 +77,11 @@ export const fetchUserListens = async (username, token, count = 100, offset = 0,
 export const fetchAllUserListens = async (username, token, onProgress) => {
   const allListens = [];
   const batchSize = 100;
-  let offset = 0;
+  let maxTs = null;
   let hasMore = true;
 
   while (hasMore) {
-    const result = await fetchUserListens(username, token, batchSize, offset, onProgress);
+    const result = await fetchUserListens(username, token, batchSize, maxTs, null, onProgress);
 
     if (!result.success) {
       return result;
@@ -55,7 +91,10 @@ export const fetchAllUserListens = async (username, token, onProgress) => {
       hasMore = false;
     } else {
       allListens.push(...result.listens);
-      offset += batchSize;
+
+      // Get the oldest timestamp from this batch for pagination
+      const oldestListen = result.listens[result.listens.length - 1];
+      maxTs = oldestListen?.listened_at || null;
 
       if (result.listens.length < batchSize) {
         hasMore = false;
