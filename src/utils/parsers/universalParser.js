@@ -214,7 +214,12 @@ function convertSpotifyTimestamp(timestamp) {
     const excelEpoch = new Date(1900, 0, 1).getTime();
     const adjustedDays = timestamp > 60 ? timestamp - 2 : timestamp - 1;
     const dateMs = excelEpoch + (adjustedDays * 24 * 60 * 60 * 1000);
-    return Math.floor(dateMs / 1000);
+    const unixTimestamp = Math.floor(dateMs / 1000);
+
+    // DEBUG: Log the conversion
+    console.log(`🔄 Converted Excel date ${timestamp} → Unix ${unixTimestamp} (${new Date(unixTimestamp * 1000).toISOString()})`);
+
+    return unixTimestamp;
   }
   
   // Unknown format - log and return current time

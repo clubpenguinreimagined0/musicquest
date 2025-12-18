@@ -1,7 +1,45 @@
 export function mergeListeningData(cachedData, importedData) {
+  // Normalize timestamps for cached data
+  const normalizedCached = (cachedData || []).map(listen => {
+    const normalized = { ...listen };
+
+    // Convert timestamp to seconds if in milliseconds
+    if (normalized.timestamp && normalized.timestamp > 10000000000) {
+      normalized.timestamp = Math.floor(normalized.timestamp / 1000);
+    }
+
+    // Ensure listened_at exists and is in seconds
+    if (normalized.listened_at && normalized.listened_at > 10000000000) {
+      normalized.listened_at = Math.floor(normalized.listened_at / 1000);
+    } else if (!normalized.listened_at && normalized.timestamp) {
+      normalized.listened_at = normalized.timestamp;
+    }
+
+    return normalized;
+  });
+
+  // Normalize timestamps for imported data
+  const normalizedImported = (importedData || []).map(listen => {
+    const normalized = { ...listen };
+
+    // Convert timestamp to seconds if in milliseconds
+    if (normalized.timestamp && normalized.timestamp > 10000000000) {
+      normalized.timestamp = Math.floor(normalized.timestamp / 1000);
+    }
+
+    // Ensure listened_at exists and is in seconds
+    if (normalized.listened_at && normalized.listened_at > 10000000000) {
+      normalized.listened_at = Math.floor(normalized.listened_at / 1000);
+    } else if (!normalized.listened_at && normalized.timestamp) {
+      normalized.listened_at = normalized.timestamp;
+    }
+
+    return normalized;
+  });
+
   const allListens = [
-    ...(cachedData || []),
-    ...(importedData || [])
+    ...normalizedCached,
+    ...normalizedImported
   ];
 
   if (allListens.length === 0) {
@@ -90,52 +128,76 @@ export function mergeListeningData(cachedData, importedData) {
 }
 
 export function validateListeningData(data) {
-  if (!data || !data.listens || data.listens.length === 0) {
+  if (!data || !data.listens || !Array.isArray(data.listens)) {
     return {
       isValid: false,
-      error: 'No listening data found. Please import your ListenBrainz data.'
+      error: 'Invalid data structure: missing listens array'
     };
   }
 
-  const timestamps = data.listens.map(l => l.timestamp || l.listened_at || 0);
-  const earliest = Math.min(...timestamps);
-  const latest = Math.max(...timestamps);
+  const listens = data.listens;
 
-  if (earliest === 0 || latest === 0) {
+  if (listens.length === 0) {
     return {
-      isValid: false,
-      error: 'Data contains invalid timestamps. Please check your data format.'
+      isValid: true,
+      message: 'Empty dataset (no listens)'
     };
   }
 
-  const yearSpan = (latest - earliest) / (365.25 * 24 * 60 * 60);
+  // Extract and normalize timestamps (convert milliseconds to seconds)
+  const timestamps = listens.map(listen => {
+    let ts = listen.timestamp || listen.listened_at;
 
-  if (yearSpan < 0.033) {
-    return {
-      isValid: false,
-      error: 'Data span too short. Need at least 1 month of listening history.'
-    };
-  }
-
-  const MIN_TIMESTAMP = 946684800;
-  const MAX_TIMESTAMP = 2147483647;
-
-  const validTimestamps = data.listens.filter(
-    l => {
-      const ts = l.timestamp || l.listened_at || 0;
-      return ts > MIN_TIMESTAMP && ts < MAX_TIMESTAMP;
+    // Convert milliseconds to seconds if needed
+    if (typeof ts === 'number' && ts > 10000000000) {
+      ts = Math.floor(ts / 1000);
     }
+
+    return ts;
+  }).filter(ts => typeof ts === 'number' && ts > 0);
+
+  if (timestamps.length === 0) {
+    return {
+      isValid: false,
+      error: 'No valid timestamps found in data'
+    };
+  }
+
+  // Valid Unix timestamp range (1970-2100)
+  const MIN_VALID_TIMESTAMP = 0;
+  const MAX_VALID_TIMESTAMP = 4102444800;
+
+  const invalidTimestamps = timestamps.filter(
+    ts => ts < MIN_VALID_TIMESTAMP || ts > MAX_VALID_TIMESTAMP
   );
 
-  if (validTimestamps.length < data.listens.length * 0.9) {
+  const invalidPercentage = (invalidTimestamps.length / timestamps.length) * 100;
+
+  if (invalidPercentage > 10) {
+    const earliest = new Date(Math.min(...timestamps) * 1000);
+    const latest = new Date(Math.max(...timestamps) * 1000);
+
+    console.error('❌ Validation failed:', {
+      total: timestamps.length,
+      invalid: invalidTimestamps.length,
+      invalidPercent: invalidPercentage.toFixed(1) + '%',
+      dateRange: `${earliest.toISOString()} to ${latest.toISOString()}`,
+      sampleInvalid: invalidTimestamps.slice(0, 5)
+    });
+
     return {
       isValid: false,
-      error: 'Data contains too many invalid timestamps. Please re-export from ListenBrainz.'
+      error: `Data contains too many invalid timestamps (${invalidPercentage.toFixed(1)}%). Please re-export from source.`
     };
   }
+
+  const earliest = Math.min(...timestamps);
+  const latest = Math.max(...timestamps);
+  const yearSpan = (latest - earliest) / (365.25 * 24 * 60 * 60);
 
   return {
     isValid: true,
+    message: `Valid dataset with ${listens.length} listens`,
     data: data,
     dateRange: {
       earliest: new Date(earliest * 1000),

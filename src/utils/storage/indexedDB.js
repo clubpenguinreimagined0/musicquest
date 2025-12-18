@@ -80,9 +80,45 @@ export const mergeListeningData = async (newData) => {
   try {
     if (!db) await initDB();
 
+    console.log('🔄 Merging listening data...');
+
     const existingData = await db.getAll(STORES.LISTENS);
 
-    const allListens = [...existingData, ...newData];
+    // Normalize timestamps in existing data
+    const normalizedExisting = existingData.map(listen => {
+      const normalized = { ...listen };
+
+      if (normalized.timestamp && normalized.timestamp > 10000000000) {
+        normalized.timestamp = Math.floor(normalized.timestamp / 1000);
+      }
+
+      if (normalized.listened_at && normalized.listened_at > 10000000000) {
+        normalized.listened_at = Math.floor(normalized.listened_at / 1000);
+      } else if (!normalized.listened_at && normalized.timestamp) {
+        normalized.listened_at = normalized.timestamp;
+      }
+
+      return normalized;
+    });
+
+    // Normalize timestamps in new data
+    const normalizedNew = newData.map(listen => {
+      const normalized = { ...listen };
+
+      if (normalized.timestamp && normalized.timestamp > 10000000000) {
+        normalized.timestamp = Math.floor(normalized.timestamp / 1000);
+      }
+
+      if (normalized.listened_at && normalized.listened_at > 10000000000) {
+        normalized.listened_at = Math.floor(normalized.listened_at / 1000);
+      } else if (!normalized.listened_at && normalized.timestamp) {
+        normalized.listened_at = normalized.timestamp;
+      }
+
+      return normalized;
+    });
+
+    const allListens = [...normalizedExisting, ...normalizedNew];
 
     const seenKeys = new Map();
     const duplicates = [];
@@ -336,18 +372,59 @@ export const getAllAPIConfigs = async () => {
 export const exportData = async () => {
   try {
     if (!db) await initDB();
+
+    console.log('📤 Exporting cache backup...');
+
     const listens = await db.getAll(STORES.LISTENS);
     const genres = await db.getAll(STORES.GENRES);
     const settings = await db.getAll(STORES.SETTINGS);
     const progress = await db.getAll(STORES.PROGRESS);
 
+    // Normalize all listens to use SECONDS (10 digits)
+    const normalizedListens = listens.map(listen => {
+      const normalized = { ...listen };
+
+      // Ensure timestamp is in SECONDS
+      if (normalized.timestamp) {
+        normalized.timestamp = normalized.timestamp > 10000000000
+          ? Math.floor(normalized.timestamp / 1000)
+          : normalized.timestamp;
+      }
+
+      // Ensure listened_at matches timestamp and is in SECONDS
+      if (normalized.listened_at) {
+        normalized.listened_at = normalized.listened_at > 10000000000
+          ? Math.floor(normalized.listened_at / 1000)
+          : normalized.listened_at;
+      } else if (normalized.timestamp) {
+        normalized.listened_at = normalized.timestamp;
+      }
+
+      return normalized;
+    });
+
+    const timestamps = normalizedListens.map(l => l.timestamp || l.listened_at).filter(Boolean);
+    const metadata = timestamps.length > 0 ? {
+      totalListens: normalizedListens.length,
+      dateRange: {
+        earliest: Math.min(...timestamps),
+        latest: Math.max(...timestamps)
+      }
+    } : {
+      totalListens: 0,
+      dateRange: null
+    };
+
+    console.log(`✅ Exported ${normalizedListens.length} listens (timestamps in Unix seconds)`);
+
     return {
-      version: DB_VERSION,
+      version: '2.0',
       exportDate: new Date().toISOString(),
-      listens,
+      listens: normalizedListens,
       genres,
       settings,
-      progress
+      progress,
+      metadata
     };
   } catch (error) {
     console.error('Failed to export data:', error);
@@ -359,10 +436,40 @@ export const importData = async (data) => {
   try {
     if (!db) await initDB();
 
+    console.log('📥 Importing cache backup...');
+
     if (data.listens && Array.isArray(data.listens)) {
+      let convertedCount = 0;
+
+      // Normalize timestamps in all listens
+      const normalizedListens = data.listens.map(listen => {
+        const normalized = { ...listen };
+
+        // Convert milliseconds to seconds
+        if (normalized.timestamp && normalized.timestamp > 10000000000) {
+          normalized.timestamp = Math.floor(normalized.timestamp / 1000);
+          convertedCount++;
+        }
+
+        // Ensure listened_at exists and is in seconds
+        if (normalized.listened_at && normalized.listened_at > 10000000000) {
+          normalized.listened_at = Math.floor(normalized.listened_at / 1000);
+        } else if (!normalized.listened_at && normalized.timestamp) {
+          normalized.listened_at = normalized.timestamp;
+        }
+
+        return normalized;
+      });
+
+      if (convertedCount > 0) {
+        console.log(`🔄 Converted ${convertedCount} timestamps from milliseconds to seconds`);
+      }
+
+      console.log(`✅ Normalized ${normalizedListens.length} listens`);
+
       const tx = db.transaction(STORES.LISTENS, 'readwrite');
       await tx.objectStore(STORES.LISTENS).clear();
-      for (const item of data.listens) {
+      for (const item of normalizedListens) {
         await tx.objectStore(STORES.LISTENS).add(item);
       }
       await tx.done;
