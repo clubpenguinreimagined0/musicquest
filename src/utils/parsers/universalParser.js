@@ -1,51 +1,81 @@
 import DOMPurify from 'dompurify';
 
 export function detectDataFormat(data, fileName = '') {
+  console.log('🔍 Detecting format...', {
+    isArray: Array.isArray(data),
+    hasPayload: !!data.payload,
+    firstItem: Array.isArray(data) && data.length > 0 ? data[0] : null,
+    fileName: fileName
+  });
+
   if (!data) {
     throw new Error('No data provided');
   }
 
-  const dataArray = Array.isArray(data) ? data : [data];
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0];
 
-  if (dataArray.length === 0) {
-    throw new Error('Data array is empty');
+    if (first.listened_at && first.track_metadata) {
+      console.log('✅ Detected: ListenBrainz export format');
+      return 'listenbrainz';
+    }
+
+    if (first.ts && first.master_metadata_track_name) {
+      console.log('✅ Detected: Spotify streaming history');
+      return 'spotify';
+    }
+
+    if (first.date?.uts && first.artist) {
+      console.log('✅ Detected: Last.fm format');
+      return 'lastfm';
+    }
   }
 
-  const firstItem = dataArray[0];
-
-  if (firstItem.listened_at && firstItem.track_metadata) {
+  if (data.payload && Array.isArray(data.payload.listens)) {
+    console.log('✅ Detected: ListenBrainz API response');
     return 'listenbrainz';
-  }
-
-  if (firstItem.ts && (firstItem.master_metadata_track_name || firstItem.spotify_track_uri)) {
-    return 'spotify';
-  }
-
-  if (firstItem.date?.uts && firstItem.artist) {
-    return 'lastfm';
   }
 
   const lowerFileName = fileName.toLowerCase();
   if (lowerFileName.includes('spotify') || lowerFileName.includes('streaming_history')) {
+    console.log('✅ Detected: Spotify (by filename)');
     return 'spotify';
   }
+
   if (lowerFileName.includes('listenbrainz')) {
+    console.log('✅ Detected: ListenBrainz (by filename)');
     return 'listenbrainz';
   }
+
   if (lowerFileName.includes('lastfm') || lowerFileName.includes('last.fm')) {
+    console.log('✅ Detected: Last.fm (by filename)');
     return 'lastfm';
   }
 
-  throw new Error('Unknown data format. Please upload ListenBrainz or Spotify extended streaming history JSON files.');
+  console.error('❌ Unknown format:', {
+    isArray: Array.isArray(data),
+    firstItemKeys: Array.isArray(data) && data[0] ? Object.keys(data[0]) : [],
+    topLevelKeys: typeof data === 'object' ? Object.keys(data) : []
+  });
+
+  throw new Error(
+    'Unable to detect file format. Please upload:\n' +
+    '• ListenBrainz JSON export, or\n' +
+    '• Spotify extended streaming history'
+  );
 }
 
 export function parseListenBrainzFormat(data) {
   try {
-    if (!data || !Array.isArray(data)) {
-      throw new Error('Invalid ListenBrainz JSON format: expected array');
+    const listens = Array.isArray(data)
+      ? data
+      : (data.payload?.listens || []);
+
+    if (listens.length === 0) {
+      throw new Error('No listens found in ListenBrainz file');
     }
 
-    const parsedListens = data.map((listen, index) => {
+    const parsedListens = listens.map((listen, index) => {
       const trackMetadata = listen.track_metadata || {};
       const listenedAt = listen.listened_at || Math.floor(Date.now() / 1000);
 
@@ -71,7 +101,7 @@ export function parseListenBrainzFormat(data) {
       format: 'listenbrainz'
     };
   } catch (error) {
-    console.error('ListenBrainz parsing error:', error);
+    console.error('❌ ListenBrainz parsing error:', error);
     return {
       success: false,
       error: error.message,
@@ -82,16 +112,25 @@ export function parseListenBrainzFormat(data) {
 
 export function parseSpotifyFormat(data) {
   try {
-    if (!data || !Array.isArray(data)) {
-      throw new Error('Invalid Spotify JSON format: expected array');
+    const listens = Array.isArray(data) ? data : [];
+
+    if (listens.length === 0) {
+      throw new Error('No listens found in Spotify file');
     }
 
-    const validListens = data.filter(item => {
+    const validListens = listens.filter(item => {
       return item.ts &&
-             (item.master_metadata_track_name || item.spotify_track_uri) &&
+             item.master_metadata_track_name &&
              item.master_metadata_album_artist_name &&
              (item.ms_played || 0) >= 30000;
     });
+
+    const filteredCount = listens.length - validListens.length;
+    console.log(`📊 Spotify: ${validListens.length} valid out of ${listens.length} total`);
+
+    if (filteredCount > 0) {
+      console.log(`🔍 Filtered out ${filteredCount} entries (skipped/short tracks)`);
+    }
 
     const parsedListens = validListens.map((listen, index) => {
       const isoTimestamp = listen.ts;
@@ -128,23 +167,18 @@ export function parseSpotifyFormat(data) {
       };
     });
 
-    const filteredCount = data.length - validListens.length;
-    if (filteredCount > 0) {
-      console.log(`🔍 Filtered out ${filteredCount} entries (skipped/short tracks)`);
-    }
-
     console.log(`✅ Parsed ${parsedListens.length} Spotify listens`);
 
     return {
       success: true,
       listens: parsedListens,
       count: parsedListens.length,
-      totalEntries: data.length,
+      totalEntries: listens.length,
       filtered: filteredCount,
       format: 'spotify'
     };
   } catch (error) {
-    console.error('Spotify parsing error:', error);
+    console.error('❌ Spotify parsing error:', error);
     return {
       success: false,
       error: error.message,
@@ -158,31 +192,48 @@ export function parseLastFmFormat(data) {
 }
 
 export function parseUniversalData(fileContent, fileName) {
+  console.log('📄 Parsing file:', fileName);
+
   try {
     const parsed = JSON.parse(fileContent);
 
     const format = detectDataFormat(parsed, fileName);
 
-    console.log(`📥 Detected format: ${format} (${fileName})`);
+    let result;
 
     switch (format) {
       case 'listenbrainz':
-        return parseListenBrainzFormat(parsed);
+        result = parseListenBrainzFormat(parsed);
+        break;
       case 'spotify':
-        return parseSpotifyFormat(parsed);
+        result = parseSpotifyFormat(parsed);
+        break;
       case 'lastfm':
-        return parseLastFmFormat(parsed);
+        result = parseLastFmFormat(parsed);
+        break;
       default:
         throw new Error(`Unsupported format: ${format}`);
     }
+
+    console.log(`📊 Parsed ${result.listens.length} listens from ${fileName}`);
+    return result;
+
   } catch (error) {
-    console.error('Parse error:', error);
+    console.error('❌ Parse error:', error);
+
+    if (error instanceof SyntaxError) {
+      throw new Error('Invalid JSON file. Please check the file format.');
+    }
+
     throw new Error(`Failed to parse file: ${error.message}`);
   }
 }
 
 export function validateUniversalData(data) {
+  console.log('🔍 Validating parsed data...');
+
   if (!data || !data.listens || data.listens.length === 0) {
+    console.error('❌ Validation failed: No listens found');
     return {
       isValid: false,
       error: 'No listens found in uploaded file.',
@@ -201,7 +252,10 @@ export function validateUniversalData(data) {
 
   const validPercentage = (validTimestamps.length / timestamps.length) * 100;
 
+  console.log(`📊 Timestamp validation: ${validPercentage.toFixed(1)}% valid (${validTimestamps.length}/${timestamps.length})`);
+
   if (validPercentage < 90) {
+    console.error('❌ Validation failed: Too many invalid timestamps');
     return {
       isValid: false,
       error: `Data contains too many invalid timestamps (${validPercentage.toFixed(1)}% valid).`,
@@ -220,7 +274,13 @@ export function validateUniversalData(data) {
   const latest = Math.max(...validTimestamps);
   const yearSpan = (latest - earliest) / (365.25 * 24 * 60 * 60);
 
+  const earliestDate = new Date(earliest * 1000);
+  const latestDate = new Date(latest * 1000);
+
+  console.log(`📅 Date range: ${earliestDate.toLocaleDateString()} to ${latestDate.toLocaleDateString()} (${yearSpan.toFixed(1)} years)`);
+
   if (yearSpan < 0.08) {
+    console.error('❌ Validation failed: Data span too short');
     return {
       isValid: false,
       error: 'Data span too short.',
@@ -228,12 +288,14 @@ export function validateUniversalData(data) {
     };
   }
 
+  console.log('✅ Validation passed');
+
   return {
     isValid: true,
     data: data,
     dateRange: {
-      earliest: new Date(earliest * 1000),
-      latest: new Date(latest * 1000)
+      earliest: earliestDate,
+      latest: latestDate
     },
     yearSpan: Math.round(yearSpan * 10) / 10,
     stats: {
