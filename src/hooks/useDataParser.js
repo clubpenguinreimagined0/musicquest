@@ -170,18 +170,36 @@ export const useDataParser = () => {
         throw new Error(validation.error);
       }
 
-      // Enrich with cached genres
+      // Check if we have existing genre cache
       setParseProgress({
         percentage: 85,
-        status: 'Enriching with cached genres...',
+        status: 'Checking genre cache...',
         currentFile: ''
       });
 
-      const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
-      const enrichedListens = await enrichListensWithGenres(mergeResult.data);
+      const { getListensNeedingGenres } = await import('../utils/listenUpdater.js');
+      const genreStatus = await getListensNeedingGenres();
+
+      let finalListens = mergeResult.data;
+
+      if (genreStatus.artists < mergeResult.data.length * 0.5) {
+        setParseProgress({
+          percentage: 90,
+          status: 'Enriching with cached genres...',
+          currentFile: ''
+        });
+
+        const { enrichListensWithGenres } = await import('../utils/genreEnrichment.js');
+        finalListens = await enrichListensWithGenres(mergeResult.data);
+
+        console.log(`✅ Enriched ${finalListens.filter(l => l.genres && l.genres[0] !== 'Unknown').length} listens from cache`);
+      } else {
+        console.log(`⚠️  Genre cache mostly empty (${genreStatus.artists} artists need classification)`);
+        console.log(`   Classification will run in background after import completes`);
+      }
 
       // Update state
-      dispatch({ type: actionTypes.SET_LISTENS, payload: enrichedListens });
+      dispatch({ type: actionTypes.SET_LISTENS, payload: finalListens });
 
       setParseProgress({
         percentage: 100,
@@ -192,12 +210,12 @@ export const useDataParser = () => {
       dispatch({ type: actionTypes.SET_LOADING, payload: false });
 
       // Calculate date range
-      const timestamps = enrichedListens.map(l => l.listened_at || 0);
+      const timestamps = finalListens.map(l => l.listened_at || 0);
       const earliest = new Date(Math.min(...timestamps) * 1000);
       const latest = new Date(Math.max(...timestamps) * 1000);
 
       // Get enrichment stats
-      const enrichedCount = enrichedListens.filter(l =>
+      const enrichedCount = finalListens.filter(l =>
         l.genres && l.genres.length > 0 && l.genres[0] !== 'Unknown'
       ).length;
 
@@ -207,26 +225,27 @@ export const useDataParser = () => {
         imported: allListens.length,
         timestampsCleaned: timestampResult.stats.cleaned,
         timestampsRemoved: timestampResult.stats.removed,
-        total: enrichedListens.length,
+        total: finalListens.length,
         duplicatesRemoved: mergeResult.mergeInfo?.duplicates || 0,
         enrichedWithGenres: enrichedCount,
-        enrichmentRate: `${((enrichedCount/enrichedListens.length)*100).toFixed(1)}%`,
+        enrichmentRate: `${((enrichedCount/finalListens.length)*100).toFixed(1)}%`,
         dateRange: `${earliest.getFullYear()}-${latest.getFullYear()}`,
         genreCleanup: genreReport
       });
 
       return {
         success: true,
-        count: enrichedListens.length,
-        listens: enrichedListens,
+        count: finalListens.length,
+        listens: finalListens,
         mergeInfo: mergeResult.mergeInfo,
         genreReport: genreReport,
         timestampStats: timestampResult.stats,
         enrichmentStats: {
-          total: enrichedListens.length,
+          total: finalListens.length,
           enriched: enrichedCount,
-          needsFetch: enrichedListens.length - enrichedCount
+          needsFetch: finalListens.length - enrichedCount
         },
+        genreStatus: genreStatus,
         dateRange: { earliest, latest }
       };
 

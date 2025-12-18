@@ -2,6 +2,10 @@
 
 Complete fix for genre assignment and timestamp validation issues.
 
+## Related Documentation
+
+- **[Live Genre Update Fix](./LIVE_GENRE_UPDATE_FIX.md)** - Critical fix for real-time genre updates during classification
+
 ## Issues Fixed
 
 ### 1. Genre Assignment During Data Processing ✅

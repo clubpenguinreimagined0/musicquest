@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { classifyMultipleArtists } from '../utils/genreClassifier';
-import { getProgress, clearProgress } from '../utils/storage/indexedDB';
+import { getProgress, clearProgress, getListeningData } from '../utils/storage/indexedDB';
 import { useData } from '../context/DataContext';
 
 export const useGenreFetch = () => {
@@ -59,8 +59,11 @@ export const useGenreFetch = () => {
         }
       };
 
-      const onComplete = (genreMap) => {
+      const onComplete = async (genreMap) => {
         dispatch({ type: actionTypes.SET_GENRE_MAP, payload: genreMap });
+
+        const updatedListens = await getListeningData();
+        dispatch({ type: actionTypes.SET_LISTENS, payload: updatedListens });
       };
 
       const genreMap = await classifyMultipleArtists(
@@ -75,8 +78,13 @@ export const useGenreFetch = () => {
       await clearProgress();
       setCanResume(false);
 
+      const updatedListens = await getListeningData();
+      dispatch({ type: actionTypes.SET_LISTENS, payload: updatedListens });
+
       setIsFetching(false);
       dispatch({ type: actionTypes.SET_LOADING, payload: false });
+
+      console.log('✅ Genre classification complete and listens refreshed');
 
       return { success: true, genreMap };
     } catch (error) {

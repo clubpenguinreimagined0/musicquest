@@ -3,6 +3,7 @@ import { searchArtist, fetchArtistTags } from './api/musicbrainz';
 import { fetchArtistInfo, fetchTopTags } from './api/lastfm';
 import { getGenreCache, saveGenreCache, saveProgress } from './storage/indexedDB';
 import { classifyByHeuristics, mergeGenres } from './heuristicGenreClassifier';
+import { updateListensWithGenres } from './listenUpdater';
 
 export const classifyArtist = async (artistName, onProgress, abortSignal = null) => {
   try {
@@ -29,6 +30,7 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
     const artistSearch = await searchArtist(artistName);
     if (!artistSearch.success) {
       await saveGenreCache(artistName, heuristicGenres, null, 'heuristic');
+      await updateListensWithGenres(artistName, heuristicGenres, 'heuristic');
       if (onProgress) onProgress({ artist: artistName, status: 'complete', genres: heuristicGenres });
       return { success: true, genres: heuristicGenres, source: 'heuristic' };
     }
@@ -43,6 +45,7 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
     if (lastfmResult.success && lastfmResult.genres.length > 0) {
       const mergedGenres = mergeGenres(heuristicGenres, lastfmResult.genres);
       await saveGenreCache(artistName, mergedGenres, mbid, 'lastfm');
+      await updateListensWithGenres(artistName, mergedGenres, 'lastfm');
       if (onProgress) onProgress({ artist: artistName, status: 'complete', genres: mergedGenres });
       return { success: true, genres: mergedGenres, source: 'lastfm' };
     }
@@ -57,6 +60,7 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
       if (genres.length > 0) {
         const mergedGenres = mergeGenres(heuristicGenres, genres);
         await saveGenreCache(artistName, mergedGenres, mbid, 'listenbrainz');
+        await updateListensWithGenres(artistName, mergedGenres, 'listenbrainz');
         if (onProgress) onProgress({ artist: artistName, status: 'complete', genres: mergedGenres });
         return { success: true, genres: mergedGenres, source: 'listenbrainz' };
       }
@@ -76,12 +80,14 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
       if (genres.length > 0) {
         const mergedGenres = mergeGenres(heuristicGenres, genres);
         await saveGenreCache(artistName, mergedGenres, mbid, 'musicbrainz');
+        await updateListensWithGenres(artistName, mergedGenres, 'musicbrainz');
         if (onProgress) onProgress({ artist: artistName, status: 'complete', genres: mergedGenres });
         return { success: true, genres: mergedGenres, source: 'musicbrainz' };
       }
     }
 
     await saveGenreCache(artistName, heuristicGenres, mbid, 'heuristic');
+    await updateListensWithGenres(artistName, heuristicGenres, 'heuristic');
     if (onProgress) onProgress({ artist: artistName, status: 'complete', genres: heuristicGenres });
     return { success: true, genres: heuristicGenres, source: 'heuristic' };
 
@@ -92,6 +98,7 @@ export const classifyArtist = async (artistName, onProgress, abortSignal = null)
     console.error(`Failed to classify artist ${artistName}:`, error);
     const heuristicGenres = classifyByHeuristics(artistName);
     await saveGenreCache(artistName, heuristicGenres, null, 'heuristic_fallback');
+    await updateListensWithGenres(artistName, heuristicGenres, 'heuristic_fallback');
     return { success: true, genres: heuristicGenres, source: 'heuristic_fallback' };
   }
 };
